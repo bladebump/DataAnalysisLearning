@@ -55,7 +55,6 @@ def answer_zero():
 
 # You can examine what your function returns by calling it in the cell. If you have questions
 # about the assignment formats, check out the discussion forums for any FAQs
-answer_zero()
 
 
 # ### Question 1
@@ -66,7 +65,7 @@ answer_zero()
 # In[3]:
 
 def answer_one():
-    return "YOUR ANSWER HERE"
+    return df['Gold'].idxmax()
 
 
 # ### Question 2
@@ -77,7 +76,8 @@ def answer_one():
 # In[4]:
 
 def answer_two():
-    return "YOUR ANSWER HERE"
+    df['different'] = abs(df['Gold'] - df['Gold.1'])
+    return df['different'].idxmax()
 
 
 # ### Question 3
@@ -92,7 +92,9 @@ def answer_two():
 # In[5]:
 
 def answer_three():
-    return "YOUR ANSWER HERE"
+    bf = df[(df['Gold.1'] > 0) & (df['Gold'] > 0)]
+    bf = (abs(bf['Gold'] - bf['Gold.1'])) / (bf['Gold'] + bf['Gold.1'])
+    return bf.idxmax()
 
 
 # ### Question 4
@@ -103,7 +105,7 @@ def answer_three():
 # In[6]:
 
 def answer_four():
-    return "YOUR ANSWER HERE"
+    return df['Gold.2'] * 3 + df['Silver.2'] * 2 + df['Bronze.2'] * 1
 
 
 # ## Part 2
@@ -125,7 +127,12 @@ census_df.head()
 # In[8]:
 
 def answer_five():
-    return "YOUR ANSWER HERE"
+    df = census_df.set_index('STNAME')
+    list = df.index.unique()
+    ans = []
+    for i in list:
+        ans.append(df.loc[i].count()['COUNTY'])
+    return list[ans.index(max(ans))]
 
 
 # ### Question 6
@@ -136,7 +143,15 @@ def answer_five():
 # In[9]:
 
 def answer_six():
-    return "YOUR ANSWER HERE"
+    df = census_df.set_index('STNAME')
+    df.drop('District of Columbia', inplace=True)
+    df = df[df['SUMLEV'] == 50]
+    list = df.index.unique()
+    ans = []
+    for i in list:
+        ans.append((df.loc[i])['CENSUS2010POP'].nlargest(3).sum())
+    ans = pd.Series(ans, index=list)
+    return ans.nlargest(3).index.tolist()
 
 
 # ### Question 7
@@ -149,7 +164,11 @@ def answer_six():
 # In[10]:
 
 def answer_seven():
-    return "YOUR ANSWER HERE"
+    df = (census_df[census_df['SUMLEV'] == 50].set_index('CTYNAME'))[
+        ['POPESTIMATE2010', 'POPESTIMATE2011', 'POPESTIMATE2012', 'POPESTIMATE2013', 'POPESTIMATE2014',
+         'POPESTIMATE2015']]
+    df['different'] = df.max(axis=1) - df.min(axis=1)
+    return df['different'].idxmax()
 
 
 # ### Question 8
@@ -162,8 +181,11 @@ def answer_seven():
 # In[11]:
 
 def answer_eight():
-    return "YOUR ANSWER HERE"
+    df = census_df[((census_df['REGION'] == 1) | (census_df['REGION'] == 2)) & (
+                census_df['POPESTIMATE2015'] > census_df['POPESTIMATE2014'])]
+    df = df[df['CTYNAME'].str.startswith('Washington')]
+    return df[['STNAME', 'CTYNAME']]
 
 
 if __name__ == "__main__":
-    print(df.head())
+    print(answer_six())
