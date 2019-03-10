@@ -29,11 +29,13 @@ def times_tables():
 def test3():
     print(times_tables() == [i * j for i in range(10) for j in range(10)])
 
+
 def test4():
     lowercase = 'abcdefghijklmnopqrstuvwxyz'
     digits = '0123456789'
     answer = [i + j + k + l for i in lowercase for j in lowercase for k in digits for l in digits]
     print(answer)
+
 
 if __name__ == "__main__":
     test4()
