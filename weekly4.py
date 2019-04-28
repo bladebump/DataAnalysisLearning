@@ -39,25 +39,63 @@ def get_list_of_university_towns():
     return df
 
 
+def get_GDP():
+    df_GDP = pd.read_excel('data/gdplev.xls', skiprows=8, usecols=[4, 6], names=['quarter', 'GDP'], header=None)
+    df_GDP = df_GDP[df_GDP['quarter'] > '2000']
+    return df_GDP
+
+
 def get_recession_start():
     '''Returns the year and quarter of the recession start time as a
     string value in a format such as 2005q3'''
-
-    return "ANSWER"
+    df_gdp = get_GDP()
+    GDP_1 = df_gdp.iloc[0]['GDP']
+    flag = False
+    start_quarter = df_gdp.iloc[0]['quarter']
+    for index, row in df_gdp[1:].iterrows():
+        GDP_2 = row['GDP']
+        if GDP_2 < GDP_1:
+            if flag is True:
+                return start_quarter
+            else:
+                flag = True
+        else:
+            flag = False
+        GDP_1 = GDP_2
+        start_quarter = row['quarter']
+    return "No recession found"
 
 
 def get_recession_end():
     '''Returns the year and quarter of the recession end time as a
     string value in a format such as 2005q3'''
-
-    return "ANSWER"
+    df_gdp = get_GDP()
+    recession_start = get_recession_start()
+    df_gdp = df_gdp[df_gdp['quarter'] > recession_start]
+    GDP_1 = df_gdp.iloc[0]['GDP']
+    flag = False
+    for index, row in df_gdp[1:].iterrows():
+        GDP_2 = row['GDP']
+        if GDP_2 > GDP_1:
+            if flag is True:
+                return row['quarter']
+            else:
+                flag = True
+        else:
+            flag = False
+        GDP_1 = GDP_2
+    return "No recession found"
 
 
 def get_recession_bottom():
     '''Returns the year and quarter of the recession bottom time as a
     string value in a format such as 2005q3'''
-
-    return "ANSWER"
+    df_GDP = get_GDP()
+    recession_start = get_recession_start()
+    recession_end = get_recession_end()
+    df_GDP = df_GDP[df_GDP['quarter'] >= recession_start]
+    df_GDP = df_GDP[df_GDP['quarter'] < recession_end]
+    return df_GDP.loc[df_GDP['GDP'].idxmin()]['quarter']
 
 
 def convert_housing_data_to_quarters():
@@ -71,8 +109,20 @@ def convert_housing_data_to_quarters():
 
     The resulting dataframe should have 67 columns, and 10,730 rows.
     '''
+    df_homes = pd.read_csv('data/City_Zhvi_AllHomes.csv').drop(['RegionID', 'Metro', 'CountyName', 'SizeRank'], axis=1)
+    df_homes['State'] = df_homes['State'].map(states)
+    columns = df_homes.columns[2:]
+    columns = columns[columns < '2000']
+    df_homes = df_homes.drop(columns, axis=1)
 
-    return "ANSWER"
+    columns = df_homes.columns[2:]
+    quarters = list(get_GDP()['quarter']) + ['2016q3']
+    df = pd.DataFrame(columns=["State", "RegionName"] + quarters)
+    df[["State", "RegionName"]] = df_homes[["State", "RegionName"]]
+    for i in range(len(quarters)):
+        df[quarters[i]] = df_homes[columns[i * 3:i * 3+3]].mean(axis=1)
+    df = df.set_index(['State', 'RegionName'])
+    return df
 
 
 def run_ttest():
@@ -89,9 +139,28 @@ def run_ttest():
     value for better should be either "university town" or "non-university town"
     depending on which has a lower mean price ratio (which is equivilent to a
     reduced market loss).'''
+    df = convert_housing_data_to_quarters()
+    recession_start = get_recession_start()
+    recession_bottom = get_recession_bottom()
+    df['price_ratio'] = df[recession_start] / df[recession_bottom]
+    df_town = get_list_of_university_towns().set_index(['State', 'RegionName'])
 
-    return "ANSWER"
+    same = df.index.intersection(df_town.index)
+    different = df.index.difference(df_town.index)
+
+    is_uni = (df.loc[same])['price_ratio'].dropna().values
+    not_uni = (df.loc[different])['price_ratio'].dropna().values
+
+    ttest_result = ttest_ind(is_uni, not_uni)
+    p = ttest_result[1]
+    difference = (p < .01)
+
+    if np.average(is_uni) > np.average(not_uni):
+        better = "non-university town"
+    else:
+        better = "university town"
+    return difference, p, better
 
 
 if __name__ == "__main__":
-    ans1 = get_list_of_university_towns()
+    ans = run_ttest()
