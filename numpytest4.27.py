@@ -85,6 +85,8 @@ def test8():
     splite_out()
     print(walk.max())
     print(walk.min())
+    splite_out()
+    print(walk[walk > 9])
 
 
 if __name__ == "__main__":
